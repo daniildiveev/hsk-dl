@@ -1,0 +1,50 @@
+name: FP-lab2-CI
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up GHC & Cabal
+        uses: haskell/actions/setup@v2
+        with:
+          ghc-version: "9.12.2"
+          cabal-version: "3.12.1.0"
+
+      - name: Cache cabal
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cabal/packages
+            ~/.cabal/store
+            dist-newstyle
+          key: ${{ runner.os }}-ghc-9.12.2-${{ hashFiles('**/*.cabal', 'cabal.project*') }}
+          restore-keys: |
+            ${{ runner.os }}-ghc-9.12.2-
+
+      - name: Update Cabal
+        run: cabal update
+
+      - name: Install tools
+        run: cabal install hlint fourmolu --overwrite-policy=always
+
+      - name: Build dependencies
+        run: cabal build --enable-tests --only-dependencies
+
+      - name: Lint (hlint)
+        run: hlint $(git ls-files '*.hs')
+
+      - name: Format check (fourmolu)
+        run: fourmolu --mode check $(git ls-files '*.hs')
+
+      - name: Build
+        run: cabal build --enable-tests --ghc-options="-Wall -Werror"
+
+      - name: Test
+        run: cabal test --enable-tests --test-show-details=direct
