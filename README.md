@@ -1,2 +1,10 @@
-# torch-haskell
-Simple neural network framework on Haskell (project for 4th lab on FP)
+# hsk-dl (Stage 0)
+
+Мини-каркас фреймворка обучения НС на Haskell: только структура, ADR и заглушки модулей.
+Дальше (этапы 1–3) добавляются тензоры, autograd, слои, оптимизаторы.
+
+## Быстрый старт
+```bash
+cabal build
+cabal test
+cabal run demo
