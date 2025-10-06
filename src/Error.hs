@@ -1,7 +1,7 @@
-module Error
-  ( TensorError(..)
-  , nyi
-  ) where
+module Error (
+  TensorError (..),
+  nyi,
+) where
 
 data TensorError
   = ShapeMismatch String

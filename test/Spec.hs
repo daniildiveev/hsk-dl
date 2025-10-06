@@ -1,9 +1,9 @@
 module Main where
 
-import Test.Hspec
-import qualified TensorSpec
-import qualified ShapeSpec
 import qualified GradlessSpec
+import qualified ShapeSpec
+import qualified TensorSpec
+import Test.Hspec
 
 main :: IO ()
 main = hspec $ do

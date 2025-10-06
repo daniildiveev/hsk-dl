@@ -1,13 +1,21 @@
-module Core.Tensor
-  ( Device(..)
-  , Layout(..)
-  , Tensor(..)
-  , shape, stride, offset
-  , numel
-  , empty, zeros, ones, full
-  , fromList, toList
-  , clone, contiguous, isContiguous
-  ) where
+module Core.Tensor (
+  Device (..),
+  Layout (..),
+  Tensor (..),
+  shape,
+  stride,
+  offset,
+  numel,
+  empty,
+  zeros,
+  ones,
+  full,
+  fromList,
+  toList,
+  clone,
+  contiguous,
+  isContiguous,
+) where
 
 import Foreign.ForeignPtr (ForeignPtr)
 
@@ -15,16 +23,17 @@ data Device = CPU
   deriving (Eq, Show)
 
 data Layout = Strided
-  { _shape  :: ![Int]
+  { _shape :: ![Int]
   , _stride :: ![Int]
   , _offset :: !Int
-  } deriving (Eq, Show)
+  }
+  deriving (Eq, Show)
 
 data Tensor a = Tensor
-  { layout  :: !Layout
+  { layout :: !Layout
   , storage :: !(ForeignPtr a)
-  , len     :: !Int
-  , device  :: !Device
+  , len :: !Int
+  , device :: !Device
   }
 
 shape :: Tensor a -> [Int]

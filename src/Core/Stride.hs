@@ -1,16 +1,16 @@
-module Core.Stride
-  ( isContiguousLayout
-  , defaultStride
-  , transpose2
-  , permute
-  , reshape
-  , slice
-  , select
-  , expand
-  ) where
+module Core.Stride (
+  isContiguousLayout,
+  defaultStride,
+  transpose2,
+  permute,
+  reshape,
+  slice,
+  select,
+  expand,
+) where
 
-import Error
 import Core.Tensor (Tensor)
+import Error
 
 isContiguousLayout :: a -> Bool
 isContiguousLayout _ = False

@@ -1,8 +1,8 @@
-module Core.Shape
-  ( normalizeAxis
-  , inferReshape
-  , broadcastShapes
-  ) where
+module Core.Shape (
+  normalizeAxis,
+  inferReshape,
+  broadcastShapes,
+) where
 
 import Error
 

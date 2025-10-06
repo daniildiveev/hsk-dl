@@ -4,7 +4,9 @@
 Дальше (этапы 1–3) добавляются тензоры, autograd, слои, оптимизаторы.
 
 ## Быстрый старт
+
 ```bash
 cabal build
 cabal test
 cabal run demo
+```
