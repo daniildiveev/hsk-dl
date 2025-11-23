@@ -33,9 +33,14 @@ library
     , Core.Stride
     , Core.Init
     , Core.Random
+    , NN.Layer
+    , NN.Loss
+    , NN.Optim.SGD
     , Error
   build-depends:
       base >=4.14 && <5
+    , containers
+    , random
 
 test-suite hsk-dl-test
   import: common-settings
