@@ -41,7 +41,7 @@ jobs:
       - name: Format check (Fourmolu)
         uses: haskell-actions/run-fourmolu@v9
         with:
-          version: "0.13.0.0"
+          version: "0.19.0.0"
 
       - name: Build
         run: stack build --test --no-run-tests --ghc-options="-Wall -Werror"
