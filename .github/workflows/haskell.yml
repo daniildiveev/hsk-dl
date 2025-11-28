@@ -11,7 +11,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up GHC & Cabal
-        uses: haskell/actions/setup@v2
+        uses: haskell-actions/setup@v2
         with:
           ghc-version: "9.12.2"
           cabal-version: "3.12.1.0"
@@ -20,30 +20,31 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cabal/packages
             ~/.cabal/store
             dist-newstyle
           key: ${{ runner.os }}-ghc-9.12.2-${{ hashFiles('**/*.cabal', 'cabal.project*') }}
           restore-keys: |
             ${{ runner.os }}-ghc-9.12.2-
 
-      - name: Update Cabal
+      - name: Cabal update
         run: cabal update
 
-      - name: Install tools
-        run: cabal install hlint fourmolu --overwrite-policy=always
-
-      - name: Build dependencies
-        run: cabal build --enable-tests --only-dependencies
+      - name: Set up HLint
+        uses: haskell-actions/hlint-setup@v2
 
       - name: Lint (hlint)
-        run: hlint $(git ls-files '*.hs')
+        uses: haskell-actions/hlint-run@v2
+        with:
+          path: .
+          fail-on: warning
 
-      - name: Format check (fourmolu)
-        run: fourmolu --mode check $(git ls-files '*.hs')
+      - name: Format check (Fourmolu)
+        uses: haskell-actions/run-fourmolu@v9
+        with:
+          version: "0.13.0.0"
 
       - name: Build
-        run: cabal build --enable-tests --ghc-options="-Wall -Werror"
+        run: cabal build all --enable-tests --ghc-options="-Wall -Werror" -j
 
       - name: Test
-        run: cabal test --enable-tests --test-show-details=direct
+        run: cabal test all --enable-tests --test-show-details=direct -j
