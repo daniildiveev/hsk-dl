@@ -35,12 +35,13 @@ main = do
   showPredictions model dataset (take 4 [0 ..]) "final"
 
 train :: [([Double], Int)] -> [IORef Tensor] -> [Layer] -> IO ()
-train dataset params model = mapM_ epoch [1 .. epochs]
+train dataset params model = mapM_ runEpoch [1 .. epochs]
  where
+  epochs :: Int
   epochs = 3
   batchSize = 10
   lr = 0.1
-  epoch e = do
+  runEpoch e = do
     putStrLn $ "Starting epoch " <> show e <> "..."
     let batches = chunk batchSize dataset
     mapM_ (trainBatch lr params model) batches
@@ -60,7 +61,7 @@ trainBatch lr params model batch = do
   loss <- nllLoss out ys
   backward loss
   sgdStep lr params
-  let [lossVal] = values loss
+  let lossVal = head (values loss)
   putStrLn ("  batch loss=" <> show lossVal)
 
 computeAccuracy :: [Layer] -> [([Double], Int)] -> IO Double
@@ -83,7 +84,7 @@ showPredictions model dataset idxs prefix = do
     putStrLn $
       "No valid indices to show for " <> prefix
   let selected = map (dataset !!) validIdxs
-      (xs, ys) = unzip selected
+      (xs, _ys) = unzip selected
       batchSize = length selected
   input <- fromList [batchSize, 784] (concat xs)
   out <- forwardSequential model input
@@ -119,7 +120,7 @@ argmax xs = fst (maximumBy (comparing snd) (zip [0 ..] xs))
 readMnistCsv :: FilePath -> Int -> IO [([Double], Int)]
 readMnistCsv path limit = do
   content <- readFile path
-  let !forced = length content
+  let !_ = length content
       ls =
         take limit
           . filter (not . null)
@@ -137,8 +138,8 @@ readMnistCsv path limit = do
       [] -> Nothing
       (l : rest) -> Just (l, rest)
     label <- readMaybe labelStr
-    pixels <- mapM readMaybe pixelStrs
-    let xs = map (\p -> realToFrac p / 255) pixels
+    pixels <- mapM readMaybe pixelStrs :: Maybe [Double]
+    let xs = map (/ 255) pixels
     if length xs < 784
       then Nothing
       else Just (take 784 xs, label)
@@ -167,14 +168,15 @@ saveImagePng :: FilePath -> [Double] -> IO ()
 saveImagePng path pixels = do
   let w = 28
       h = 28
-      clamp x
+      clampPx :: Int -> Int
+      clampPx x
         | x < 0 = 0
         | x > 255 = 255
         | otherwise = x
-      toPx v = fromIntegral (clamp (round (v * 255 :: Double))) :: Pixel8
+      toPx v = fromIntegral (clampPx (round (v * 255 :: Double))) :: Pixel8
       idx x y = y * w + x
-      pixelAt x y = toPx (pixels !! idx x y)
-      img = generateImage pixelAt w h :: Image Pixel8
+      getPixel x y = toPx (pixels !! idx x y)
+      img = generateImage getPixel w h :: Image Pixel8
   createDirectoryIfMissing True (takeDirectory path)
   savePngImage path (ImageY8 img)
 

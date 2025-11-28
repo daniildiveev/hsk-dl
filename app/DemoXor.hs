@@ -35,5 +35,5 @@ trainEpochs epochs lr params model input = mapM_ step [1 .. epochs]
     loss <- nllLoss out xorTargets
     backward loss
     sgdStep lr params
-    let [lossVal] = values loss
+    let lossVal = head (values loss)
     Control.Monad.when (epoch `mod` 200 == 0) $ putStrLn ("epoch " <> show epoch <> ", loss=" <> show lossVal)

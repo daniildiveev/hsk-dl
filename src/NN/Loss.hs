@@ -7,14 +7,14 @@ import Control.Monad (when)
 import Core.Tensor
 
 mseLoss :: Tensor -> Tensor -> IO Tensor
-mseLoss pred target = do
-  Control.Monad.when (shape pred /= shape target) $ error $ "mseLoss: shapes do not match, got " <> show (shape pred) <> " and " <> show (shape target)
-  diff <- sub pred target
+mseLoss prediction target = do
+  Control.Monad.when (shape prediction /= shape target) $ error $ "mseLoss: shapes do not match, got " <> show (shape prediction) <> " and " <> show (shape target)
+  diff <- sub prediction target
   let vals = map (\x -> x * x) (values diff)
       reqGrad = requiresGrad diff
-      backward =
+      backwardOps =
         ([BackwardOp diff (\up -> zipWith (\u x -> u * 2 * x) up (values diff)) | reqGrad])
-  squared <- newTensor (shape diff) vals reqGrad backward
+  squared <- newTensor (shape diff) vals reqGrad backwardOps
   meanAll squared
 
 nllLoss :: Tensor -> [Int] -> IO Tensor
@@ -36,13 +36,13 @@ nllLoss preds targets = do
       gradFn [g] =
         concat
           [ [ if c == cls
-               then (-g / fromIntegral batch) / max eps (pick i cls)
-               else 0
+                then (-(g / fromIntegral batch)) / max eps (pick i cls)
+                else 0
             | c <- [0 .. classes - 1]
             ]
           | (i, cls) <- zip [0 ..] targets
           ]
       gradFn _ = error "nllLoss: unexpected upstream gradient shape"
-      backward =
+      backwardOps =
         ([BackwardOp preds gradFn | reqGrad])
-  newTensor [1] [lossVal] reqGrad backward
+  newTensor [1] [lossVal] reqGrad backwardOps

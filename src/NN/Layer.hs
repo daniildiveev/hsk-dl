@@ -14,10 +14,7 @@ import Core.Tensor
 import Data.IORef
 
 data Layer
-  = Linear
-      { weight :: IORef Tensor
-      , bias :: IORef Tensor
-      }
+  = Linear (IORef Tensor) (IORef Tensor) -- weight, bias
   | Relu
   | Softmax
 

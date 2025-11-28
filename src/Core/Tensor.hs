@@ -181,23 +181,26 @@ relu =
     (\x -> if x > 0 then 1 else 0)
 
 unary :: String -> (Double -> Double) -> (Double -> Double) -> Tensor -> IO Tensor
-unary name f gradF t = do
+unary _name f gradF t = do
   let vals = map f (tValues t)
-      backward =
+      backwardOps =
         ( [ BackwardOp
-             t
-             (\up -> zipWith (*) up (map gradF (tValues t)))
+              t
+              (\up -> zipWith (*) up (map gradF (tValues t)))
           | tRequiresGrad t
           ]
         )
-  newTensor (tShape t) vals (tRequiresGrad t) backward
+  newTensor (tShape t) vals (tRequiresGrad t) backwardOps
 
 sumAll :: Tensor -> IO Tensor
 sumAll t = do
   let s = sum (tValues t)
-      backward =
-        ([BackwardOp t (\[g] -> replicate (length (tValues t)) g) | tRequiresGrad t])
-  newTensor [1] [s] (tRequiresGrad t) backward
+      gradFn gs = case gs of
+        [g] -> replicate (length (tValues t)) g
+        _ -> error "sumAll: expected single upstream gradient"
+      backwardOps =
+        ([BackwardOp t gradFn | tRequiresGrad t])
+  newTensor [1] [s] (tRequiresGrad t) backwardOps
 
 meanAll :: Tensor -> IO Tensor
 meanAll t = do
@@ -213,9 +216,9 @@ softmax t =
       let rows = chunk classes (tValues t)
           probs = concatMap softmaxRow rows
           reqGrad = tRequiresGrad t
-          backward =
+          backwardOps =
             ([BackwardOp t (softmaxBackward batch classes probs) | reqGrad])
-      newTensor [batch, classes] probs reqGrad backward
+      newTensor [batch, classes] probs reqGrad backwardOps
     other -> error $ "softmax: expected rank-1 or rank-2 tensor, got shape " <> show other
 
 softmaxRow :: [Double] -> [Double]
@@ -251,25 +254,25 @@ matmul a b =
               reqGrad = tRequiresGrad a || tRequiresGrad b
               backwardA =
                 ( [ BackwardOp
-                     a
-                     ( \up ->
-                         [ sum [up !! (i * n + j) * getB k j | j <- [0 .. n - 1]]
-                         | i <- [0 .. m - 1]
-                         , k <- [0 .. k1 - 1]
-                         ]
-                     )
+                      a
+                      ( \up ->
+                          [ sum [up !! (i * n + j) * getB k j | j <- [0 .. n - 1]]
+                          | i <- [0 .. m - 1]
+                          , k <- [0 .. k1 - 1]
+                          ]
+                      )
                   | tRequiresGrad a
                   ]
                 )
               backwardB =
                 ( [ BackwardOp
-                     b
-                     ( \up ->
-                         [ sum [getA i k * up !! (i * n + j) | i <- [0 .. m - 1]]
-                         | k <- [0 .. k1 - 1]
-                         , j <- [0 .. n - 1]
-                         ]
-                     )
+                      b
+                      ( \up ->
+                          [ sum [getA i k * up !! (i * n + j) | i <- [0 .. m - 1]]
+                          | k <- [0 .. k1 - 1]
+                          , j <- [0 .. n - 1]
+                          ]
+                      )
                   | tRequiresGrad b
                   ]
                 )

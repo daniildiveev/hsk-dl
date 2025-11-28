@@ -11,6 +11,6 @@ spec = describe "Functional ops without grad" $ do
     values r `shouldBe` [0, 0, 1, 2]
 
   it "imageToTensor builds a 2D tensor" $ do
-    img <- imageToTensor [[1, 2], [3, 4]]
+    img <- imageToTensor ([[1, 2], [3, 4]] :: [[Double]])
     shape img `shouldBe` [2, 2]
     values img `shouldBe` [1, 2, 3, 4]

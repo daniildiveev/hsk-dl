@@ -25,6 +25,6 @@ boxMuller :: IO (Double, Double)
 boxMuller = do
   u1 <- randomRIO (1e-7, 1) -- avoid log 0
   u2 <- randomRIO (0, 1)
-  let r = sqrt (-2 * log u1)
+  let r = sqrt (-(2 * log u1))
       theta = 2 * pi * u2
   pure (r * cos theta, r * sin theta)
