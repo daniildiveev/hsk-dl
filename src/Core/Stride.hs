@@ -10,9 +10,9 @@ module Core.Stride (
 ) where
 
 import Core.Tensor
-import Error
-import qualified Data.Set as Set
 import Data.List (sortOn)
+import qualified Data.Set as Set
+import Error
 import System.IO.Unsafe (unsafePerformIO)
 
 isContiguousLayout :: Tensor -> Bool
@@ -56,8 +56,8 @@ permute t order =
                 | i <- allIndices
                 ]
            in Right (unsafeNewTensor newShape newValues (requiresGrad t) t)
-  where
-    inverse xs = map snd (sortOn fst (zip xs [0 ..]))
+ where
+  inverse xs = map snd (sortOn fst (zip xs [0 ..]))
 
 reshape :: Tensor -> [Int] -> Either TensorError Tensor
 reshape t newShape =

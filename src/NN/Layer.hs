@@ -8,10 +8,10 @@ module NN.Layer (
   parameters,
 ) where
 
+import Control.Monad (foldM)
 import Core.Init (xavierUniform)
 import Core.Tensor
 import Data.IORef
-import Control.Monad (foldM)
 
 data Layer
   = Linear

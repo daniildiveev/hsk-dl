@@ -1,11 +1,11 @@
 module Main where
 
+import Control.Monad (when)
 import Core.Tensor
+import Data.IORef (IORef)
 import NN.Layer
 import NN.Loss
 import NN.Optim.SGD
-import Data.IORef (IORef)
-import Control.Monad (when)
 
 xorInputs :: [Double]
 xorInputs =
@@ -28,12 +28,12 @@ main = do
 
 trainEpochs :: Int -> Double -> [IORef Tensor] -> [Layer] -> Tensor -> IO ()
 trainEpochs epochs lr params model input = mapM_ step [1 .. epochs]
-  where
-    step epoch = do
-      zeroGradParameters params
-      out <- forwardSequential model input
-      loss <- nllLoss out xorTargets
-      backward loss
-      sgdStep lr params
-      let [lossVal] = values loss
-      Control.Monad.when (epoch `mod` 200 == 0) $ putStrLn ("epoch " <> show epoch <> ", loss=" <> show lossVal)
+ where
+  step epoch = do
+    zeroGradParameters params
+    out <- forwardSequential model input
+    loss <- nllLoss out xorTargets
+    backward loss
+    sgdStep lr params
+    let [lossVal] = values loss
+    Control.Monad.when (epoch `mod` 200 == 0) $ putStrLn ("epoch " <> show epoch <> ", loss=" <> show lossVal)

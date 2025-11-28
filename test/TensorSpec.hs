@@ -1,7 +1,7 @@
 module TensorSpec (spec) where
 
-import Core.Tensor
 import Control.Monad (zipWithM_)
+import Core.Tensor
 import Test.Hspec
 
 spec :: Spec

@@ -37,12 +37,12 @@ inferReshape oldShape newShape =
 
 broadcastShapes :: [Int] -> [Int] -> Either TensorError [Int]
 broadcastShapes a b = go (reverse a) (reverse b) []
-  where
-    go [] [] acc = Right (reverse acc)
-    go xs [] acc = Right (reverse acc <> reverse xs)
-    go [] ys acc = Right (reverse acc <> reverse ys)
-    go (x : xs) (y : ys) acc
-      | x == y = go xs ys (x : acc)
-      | x == 1 = go xs ys (y : acc)
-      | y == 1 = go xs ys (x : acc)
-      | otherwise = Left (BroadcastError ("Cannot broadcast " <> show a <> " and " <> show b))
+ where
+  go [] [] acc = Right (reverse acc)
+  go xs [] acc = Right (reverse acc <> reverse xs)
+  go [] ys acc = Right (reverse acc <> reverse ys)
+  go (x : xs) (y : ys) acc
+    | x == y = go xs ys (x : acc)
+    | x == 1 = go xs ys (y : acc)
+    | y == 1 = go xs ys (x : acc)
+    | otherwise = Left (BroadcastError ("Cannot broadcast " <> show a <> " and " <> show b))

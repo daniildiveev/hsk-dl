@@ -54,11 +54,11 @@ instance Eq Tensor where
 instance Show Tensor where
   show t =
     "Tensor(shape=" <> show (tShape t) <> ", values=" <> show (take 6 (tValues t)) <> suffix <> ")"
-    where
-      suffix =
-        if length (tValues t) > 6
-          then "..."
-          else ""
+   where
+    suffix =
+      if length (tValues t) > 6
+        then "..."
+        else ""
 
 {-# NOINLINE globalTensorId #-}
 globalTensorId :: IORef Int
@@ -126,7 +126,7 @@ ones dims = full dims 1 False
 full :: [Int] -> Double -> Bool -> IO Tensor
 full dims v reqGrad = newTensor dims (replicate (numel dims) v) reqGrad []
 
-imageToTensor :: Real a => [[a]] -> IO Tensor
+imageToTensor :: (Real a) => [[a]] -> IO Tensor
 imageToTensor rows =
   case rows of
     [] -> error "imageToTensor: empty image"
@@ -174,7 +174,8 @@ mul a b =
     b
 
 relu :: Tensor -> IO Tensor
-relu = unary
+relu =
+  unary
     "relu"
     (`max` 0)
     (\x -> if x > 0 then 1 else 0)
@@ -183,9 +184,12 @@ unary :: String -> (Double -> Double) -> (Double -> Double) -> Tensor -> IO Tens
 unary name f gradF t = do
   let vals = map f (tValues t)
       backward =
-        ([BackwardOp
-                    t
-                    (\up -> zipWith (*) up (map gradF (tValues t))) | tRequiresGrad t])
+        ( [ BackwardOp
+              t
+              (\up -> zipWith (*) up (map gradF (tValues t)))
+          | tRequiresGrad t
+          ]
+        )
   newTensor (tShape t) vals (tRequiresGrad t) backward
 
 sumAll :: Tensor -> IO Tensor
@@ -224,13 +228,13 @@ softmaxRow xs =
 softmaxBackward :: Int -> Int -> [Double] -> [Double] -> [Double]
 softmaxBackward batch classes probs upstream =
   concatMap step [0 .. batch - 1]
-  where
-    step i =
-      let rowStart = i * classes
-          row = take classes (drop rowStart probs)
-          upRow = take classes (drop rowStart upstream)
-          dotProd = sum (zipWith (*) row upRow)
-       in zipWith (\s u -> s * (u - dotProd)) row upRow
+ where
+  step i =
+    let rowStart = i * classes
+        row = take classes (drop rowStart probs)
+        upRow = take classes (drop rowStart upstream)
+        dotProd = sum (zipWith (*) row upRow)
+     in zipWith (\s u -> s * (u - dotProd)) row upRow
 
 matmul :: Tensor -> Tensor -> IO Tensor
 matmul a b =
@@ -246,23 +250,29 @@ matmul a b =
                 ]
               reqGrad = tRequiresGrad a || tRequiresGrad b
               backwardA =
-                ([BackwardOp
-                            a
-                            ( \up ->
-                                [ sum [up !! (i * n + j) * getB k j | j <- [0 .. n - 1]]
-                                | i <- [0 .. m - 1]
-                                , k <- [0 .. k1 - 1]
-                                ]
-                            ) | tRequiresGrad a])
+                ( [ BackwardOp
+                      a
+                      ( \up ->
+                          [ sum [up !! (i * n + j) * getB k j | j <- [0 .. n - 1]]
+                          | i <- [0 .. m - 1]
+                          , k <- [0 .. k1 - 1]
+                          ]
+                      )
+                  | tRequiresGrad a
+                  ]
+                )
               backwardB =
-                ([BackwardOp
-                            b
-                            ( \up ->
-                                [ sum [getA i k * up !! (i * n + j) | i <- [0 .. m - 1]]
-                                | k <- [0 .. k1 - 1]
-                                , j <- [0 .. n - 1]
-                                ]
-                            ) | tRequiresGrad b])
+                ( [ BackwardOp
+                      b
+                      ( \up ->
+                          [ sum [getA i k * up !! (i * n + j) | i <- [0 .. m - 1]]
+                          | k <- [0 .. k1 - 1]
+                          , j <- [0 .. n - 1]
+                          ]
+                      )
+                  | tRequiresGrad b
+                  ]
+                )
            in newTensor [m, n] vals reqGrad (backwardA <> backwardB)
     (sa, sb) ->
       error $

@@ -1,21 +1,22 @@
 {-# LANGUAGE BangPatterns #-}
+
 module Main where
 
 import Core.Tensor
-import Data.IORef (IORef)
-import Data.List (maximumBy, foldl')
-import Data.Ord (comparing)
 import Data.Char (isSpace)
+import Data.IORef (IORef)
+import Data.List (foldl', maximumBy)
 import Data.Maybe (mapMaybe)
-import Text.Read (readMaybe)
+import Data.Ord (comparing)
 import NN.Layer
 import NN.Loss
 import NN.Optim.SGD
+import Text.Read (readMaybe)
 
 import Codec.Picture
 import Control.Monad (forM_, when)
-import System.FilePath ((</>), takeDirectory)
 import System.Directory (createDirectoryIfMissing)
+import System.FilePath (takeDirectory, (</>))
 
 main :: IO ()
 main = do
@@ -35,19 +36,19 @@ main = do
 
 train :: [([Double], Int)] -> [IORef Tensor] -> [Layer] -> IO ()
 train dataset params model = mapM_ epoch [1 .. epochs]
-  where
-    epochs = 3
-    batchSize = 10
-    lr = 0.1
-    epoch e = do
-      putStrLn $ "Starting epoch " <> show e <> "..."
-      let batches = chunk batchSize dataset
-      mapM_ (trainBatch lr params model) batches
-      putStrLn ("Epoch " <> show e <> " done.")
-      acc <- computeAccuracy model (take 50 dataset)
-      putStrLn $ "Epoch " <> show e <> " accuracy on first 50 rows: " <> show (acc * 100) <> "%"
-      let idxs = take 2 [0 ..]
-      showPredictions model dataset idxs ("epoch-" ++ show e)
+ where
+  epochs = 3
+  batchSize = 10
+  lr = 0.1
+  epoch e = do
+    putStrLn $ "Starting epoch " <> show e <> "..."
+    let batches = chunk batchSize dataset
+    mapM_ (trainBatch lr params model) batches
+    putStrLn ("Epoch " <> show e <> " done.")
+    acc <- computeAccuracy model (take 50 dataset)
+    putStrLn $ "Epoch " <> show e <> " accuracy on first 50 rows: " <> show (acc * 100) <> "%"
+    let idxs = take 2 [0 ..]
+    showPredictions model dataset idxs ("epoch-" ++ show e)
 
 trainBatch :: Double -> [IORef Tensor] -> [Layer] -> [([Double], Int)] -> IO ()
 trainBatch lr params model batch = do
@@ -79,7 +80,8 @@ showPredictions model dataset idxs prefix = do
   let n = length dataset
       validIdxs = filter (\i -> i >= 0 && i < n) idxs
   when (null validIdxs) $
-    putStrLn $ "No valid indices to show for " <> prefix
+    putStrLn $
+      "No valid indices to show for " <> prefix
   let selected = map (dataset !!) validIdxs
       (xs, ys) = unzip selected
       batchSize = length selected
@@ -107,8 +109,8 @@ showPredictionWithDir outDir idLabel pixels outRow trueLabel = do
   printAsciiImage pixels
   putStrLn ""
 
-zip4 :: [a] -> [b] -> [c] -> [d] -> [(a,b,c,d)]
-zip4 (a:as) (b:bs) (c:cs) (d:ds) = (a,b,c,d) : zip4 as bs cs ds
+zip4 :: [a] -> [b] -> [c] -> [d] -> [(a, b, c, d)]
+zip4 (a : as) (b : bs) (c : cs) (d : ds) = (a, b, c, d) : zip4 as bs cs ds
 zip4 _ _ _ _ = []
 
 argmax :: [Double] -> Int
@@ -128,18 +130,18 @@ readMnistCsv path limit = do
   if null parsed
     then error "No rows parsed; is the CSV path correct and header removed?"
     else pure parsed
-  where
-    parseLine line = do
-      let cells = splitCommas line
-      (labelStr, pixelStrs) <- case cells of
-        [] -> Nothing
-        (l : rest) -> Just (l, rest)
-      label <- readMaybe labelStr
-      pixels <- mapM readMaybe pixelStrs
-      let xs = map (\p -> realToFrac p / 255) pixels
-      if length xs < 784
-        then Nothing
-        else Just (take 784 xs, label)
+ where
+  parseLine line = do
+    let cells = splitCommas line
+    (labelStr, pixelStrs) <- case cells of
+      [] -> Nothing
+      (l : rest) -> Just (l, rest)
+    label <- readMaybe labelStr
+    pixels <- mapM readMaybe pixelStrs
+    let xs = map (\p -> realToFrac p / 255) pixels
+    if length xs < 784
+      then Nothing
+      else Just (take 784 xs, label)
 
 trim :: String -> String
 trim = dropWhileEnd isSpace . dropWhile isSpace
@@ -186,5 +188,5 @@ printAsciiImage pixels = do
         let i = floor (v * fromIntegral (n - 1))
          in chars !! i
       idx x y = y * w + x
-      row y = [ charFor (pixels !! idx x y) | x <- [0 .. w-1] ]
-  mapM_ (putStrLn . concatMap (:[])) [row y | y <- [0 .. h-1]]
+      row y = [charFor (pixels !! idx x y) | x <- [0 .. w - 1]]
+  mapM_ (putStrLn . concatMap (: [])) [row y | y <- [0 .. h - 1]]

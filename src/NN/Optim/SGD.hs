@@ -3,9 +3,9 @@ module NN.Optim.SGD (
   zeroGradParameters,
 ) where
 
+import Control.Monad (forM_)
 import Core.Tensor
 import Data.IORef
-import Control.Monad (forM_)
 
 sgdStep :: Double -> [IORef Tensor] -> IO ()
 sgdStep lr params =
