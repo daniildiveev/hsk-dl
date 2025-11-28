@@ -5,6 +5,7 @@ import NN.Layer
 import NN.Loss
 import NN.Optim.SGD
 import Data.IORef (IORef)
+import Control.Monad (when)
 
 xorInputs :: [Double]
 xorInputs =
@@ -35,6 +36,4 @@ trainEpochs epochs lr params model input = mapM_ step [1 .. epochs]
       backward loss
       sgdStep lr params
       let [lossVal] = values loss
-      if epoch `mod` 200 == 0
-        then putStrLn ("epoch " <> show epoch <> ", loss=" <> show lossVal)
-        else pure ()
+      Control.Monad.when (epoch `mod` 200 == 0) $ putStrLn ("epoch " <> show epoch <> ", loss=" <> show lossVal)

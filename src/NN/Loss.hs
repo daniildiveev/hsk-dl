@@ -3,20 +3,17 @@ module NN.Loss (
   nllLoss,
 ) where
 
+import Control.Monad (when)
 import Core.Tensor
 
 mseLoss :: Tensor -> Tensor -> IO Tensor
 mseLoss pred target = do
-  if shape pred /= shape target
-    then error $ "mseLoss: shapes do not match, got " <> show (shape pred) <> " and " <> show (shape target)
-    else pure ()
+  Control.Monad.when (shape pred /= shape target) $ error $ "mseLoss: shapes do not match, got " <> show (shape pred) <> " and " <> show (shape target)
   diff <- sub pred target
   let vals = map (\x -> x * x) (values diff)
       reqGrad = requiresGrad diff
       backward =
-        if reqGrad
-          then [BackwardOp diff (\up -> zipWith (\u x -> u * 2 * x) up (values diff))]
-          else []
+        ([BackwardOp diff (\up -> zipWith (\u x -> u * 2 * x) up (values diff)) | reqGrad])
   squared <- newTensor (shape diff) vals reqGrad backward
   meanAll squared
 
@@ -27,12 +24,8 @@ nllLoss preds targets = do
     case shape preds of
       [b, c] -> pure (b, c)
       other -> error $ "nllLoss expects shape [batch, classes], got " <> show other
-  if length targets /= batch
-    then error "nllLoss: target length does not match batch size"
-    else pure ()
-  if any (\c -> c < 0 || c >= classes) targets
-    then error "nllLoss: target index out of range"
-    else pure ()
+  Control.Monad.when (length targets /= batch) $ error "nllLoss: target length does not match batch size"
+  Control.Monad.when (any (\c -> c < 0 || c >= classes) targets) $ error "nllLoss: target index out of range"
   let pick i c = values preds !! (i * classes + c)
       losses =
         [ -log (max eps (pick i cls))
@@ -51,7 +44,5 @@ nllLoss preds targets = do
           ]
       gradFn _ = error "nllLoss: unexpected upstream gradient shape"
       backward =
-        if reqGrad
-          then [BackwardOp preds gradFn]
-          else []
+        ([BackwardOp preds gradFn | reqGrad])
   newTensor [1] [lossVal] reqGrad backward

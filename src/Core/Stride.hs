@@ -50,7 +50,7 @@ permute t order =
               coordsToLinear coords strides = sum (zipWith (*) coords strides)
               newValues =
                 [ let newCoords = toCoords i newStrides newShape
-                      oldCoords = map (\k -> newCoords !! k) (inverse order)
+                      oldCoords = map (newCoords !!) (inverse order)
                       oldIdx = coordsToLinear oldCoords oldStrides
                    in values t !! oldIdx
                 | i <- allIndices
@@ -81,4 +81,4 @@ unsafeNewTensor dims vals reqGrad parent =
       dims
       vals
       reqGrad
-      (if reqGrad then [BackwardOp parent id] else [])
+      ([BackwardOp parent id | reqGrad])

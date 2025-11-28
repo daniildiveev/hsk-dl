@@ -29,7 +29,7 @@ module Core.Tensor (
   backward,
 ) where
 
-import Control.Monad (foldM, forM_)
+import Control.Monad (foldM, forM_, when)
 import Data.IORef
 import qualified Data.Set as Set
 import System.IO.Unsafe (unsafePerformIO)
@@ -95,9 +95,7 @@ detach t = fromListWithGrad (tShape t) (tValues t) (tRequiresGrad t)
 newTensor :: [Int] -> [Double] -> Bool -> [BackwardOp] -> IO Tensor
 newTensor dims vals reqGrad backwards = do
   let expected = numel dims
-  if expected /= length vals
-    then error $ "Shape " <> show dims <> " expects " <> show expected <> " values, got " <> show (length vals)
-    else pure ()
+  Control.Monad.when (expected /= length vals) $ error $ "Shape " <> show dims <> " expects " <> show expected <> " values, got " <> show (length vals)
   gradRef <- newIORef (replicate (length vals) 0)
   tid <- nextTensorId
   pure
@@ -117,7 +115,7 @@ fromListWithGrad :: [Int] -> [Double] -> Bool -> IO Tensor
 fromListWithGrad dims vals reqGrad = newTensor dims vals reqGrad []
 
 scalar :: Double -> Bool -> IO Tensor
-scalar x reqGrad = fromListWithGrad [1] [x] reqGrad
+scalar x = fromListWithGrad [1] [x]
 
 zeros :: [Int] -> IO Tensor
 zeros dims = full dims 0 False
@@ -149,19 +147,13 @@ zipWithTensor ::
 zipWithTensor name f (gradLeft, gradRight) a b = do
   let sa = tShape a
       sb = tShape b
-  if sa /= sb
-    then error $ name <> ": shapes do not match, got " <> show sa <> " and " <> show sb
-    else pure ()
+  Control.Monad.when (sa /= sb) $ error $ name <> ": shapes do not match, got " <> show sa <> " and " <> show sb
   let vals = zipWith f (tValues a) (tValues b)
       reqGrad = tRequiresGrad a || tRequiresGrad b
       backwardLeft =
-        if tRequiresGrad a
-          then [BackwardOp a gradLeft]
-          else []
+        ([BackwardOp a gradLeft | tRequiresGrad a])
       backwardRight =
-        if tRequiresGrad b
-          then [BackwardOp b gradRight]
-          else []
+        ([BackwardOp b gradRight | tRequiresGrad b])
   newTensor (tShape a) vals reqGrad (backwardLeft <> backwardRight)
 
 add :: Tensor -> Tensor -> IO Tensor
@@ -182,34 +174,25 @@ mul a b =
     b
 
 relu :: Tensor -> IO Tensor
-relu t =
-  unary
+relu = unary
     "relu"
-    (\x -> if x > 0 then x else 0)
+    (`max` 0)
     (\x -> if x > 0 then 1 else 0)
-    t
 
 unary :: String -> (Double -> Double) -> (Double -> Double) -> Tensor -> IO Tensor
 unary name f gradF t = do
   let vals = map f (tValues t)
       backward =
-        if tRequiresGrad t
-          then
-            [ BackwardOp
-                t
-                (\up -> zipWith (*) up (map gradF (tValues t)))
-            ]
-          else []
+        ([BackwardOp
+                    t
+                    (\up -> zipWith (*) up (map gradF (tValues t))) | tRequiresGrad t])
   newTensor (tShape t) vals (tRequiresGrad t) backward
 
 sumAll :: Tensor -> IO Tensor
 sumAll t = do
   let s = sum (tValues t)
       backward =
-        if tRequiresGrad t
-          then
-            [BackwardOp t (\[g] -> replicate (length (tValues t)) g)]
-          else []
+        ([BackwardOp t (\[g] -> replicate (length (tValues t)) g) | tRequiresGrad t])
   newTensor [1] [s] (tRequiresGrad t) backward
 
 meanAll :: Tensor -> IO Tensor
@@ -227,11 +210,7 @@ softmax t =
           probs = concatMap softmaxRow rows
           reqGrad = tRequiresGrad t
           backward =
-            if reqGrad
-              then
-                [ BackwardOp t (\up -> softmaxBackward batch classes probs up)
-                ]
-              else []
+            ([BackwardOp t (softmaxBackward batch classes probs) | reqGrad])
       newTensor [batch, classes] probs reqGrad backward
     other -> error $ "softmax: expected rank-1 or rank-2 tensor, got shape " <> show other
 
@@ -267,31 +246,23 @@ matmul a b =
                 ]
               reqGrad = tRequiresGrad a || tRequiresGrad b
               backwardA =
-                if tRequiresGrad a
-                  then
-                    [ BackwardOp
-                        a
-                        ( \up ->
-                            [ sum [up !! (i * n + j) * getB k j | j <- [0 .. n - 1]]
-                            | i <- [0 .. m - 1]
-                            , k <- [0 .. k1 - 1]
-                            ]
-                        )
-                    ]
-                  else []
+                ([BackwardOp
+                            a
+                            ( \up ->
+                                [ sum [up !! (i * n + j) * getB k j | j <- [0 .. n - 1]]
+                                | i <- [0 .. m - 1]
+                                , k <- [0 .. k1 - 1]
+                                ]
+                            ) | tRequiresGrad a])
               backwardB =
-                if tRequiresGrad b
-                  then
-                    [ BackwardOp
-                        b
-                        ( \up ->
-                            [ sum [getA i k * up !! (i * n + j) | i <- [0 .. m - 1]]
-                            | k <- [0 .. k1 - 1]
-                            , j <- [0 .. n - 1]
-                            ]
-                        )
-                    ]
-                  else []
+                ([BackwardOp
+                            b
+                            ( \up ->
+                                [ sum [getA i k * up !! (i * n + j) | i <- [0 .. m - 1]]
+                                | k <- [0 .. k1 - 1]
+                                , j <- [0 .. n - 1]
+                                ]
+                            ) | tRequiresGrad b])
            in newTensor [m, n] vals reqGrad (backwardA <> backwardB)
     (sa, sb) ->
       error $
@@ -309,13 +280,9 @@ addRowVector matrix rowVec =
               vals = zipWith (+) (tValues matrix) expanded
               reqGrad = tRequiresGrad matrix || tRequiresGrad rowVec
               backwardMatrix =
-                if tRequiresGrad matrix
-                  then [BackwardOp matrix id]
-                  else []
+                ([BackwardOp matrix id | tRequiresGrad matrix])
               backwardRow =
-                if tRequiresGrad rowVec
-                  then [BackwardOp rowVec (\up -> reduceRows up rows cols)]
-                  else []
+                ([BackwardOp rowVec (\up -> reduceRows up rows cols) | tRequiresGrad rowVec])
            in newTensor [rows, cols] vals reqGrad (backwardMatrix <> backwardRow)
       | otherwise -> error $ "addRowVector: column mismatch " <> show cols <> " vs " <> show cols'
     (s, rv) ->
@@ -335,9 +302,7 @@ backward target = do
     g <- readIORef (tGrad t)
     forM_ (tBackward t) $ \(BackwardOp dep transform) -> do
       let gDep = transform g
-      if tRequiresGrad dep
-        then modifyIORef' (tGrad dep) (zipWith (+) gDep)
-        else pure ()
+      Control.Monad.when (tRequiresGrad dep) $ modifyIORef' (tGrad dep) (zipWith (+) gDep)
 
 topo :: Tensor -> Set.Set Int -> IO (Set.Set Int, [Tensor])
 topo t visited
@@ -363,7 +328,7 @@ reshape1to2 t rows cols = do
         [rows, cols]
         (tValues t)
         (tRequiresGrad t)
-        (if tRequiresGrad t then [BackwardOp t id] else [])
+        ([BackwardOp t id | tRequiresGrad t])
 
 chunk :: Int -> [a] -> [[a]]
 chunk _ [] = []

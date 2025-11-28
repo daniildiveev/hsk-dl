@@ -24,7 +24,7 @@ data Layer
 linear :: Int -> Int -> IO Layer
 linear inFeatures outFeatures = do
   wVals <- xavierUniform [inFeatures, outFeatures]
-  bVals <- pure (replicate outFeatures 0)
+  let bVals = replicate outFeatures 0
   w <- fromListWithGrad [inFeatures, outFeatures] wVals True
   b <- fromListWithGrad [outFeatures] bVals True
   Linear <$> newIORef w <*> newIORef b

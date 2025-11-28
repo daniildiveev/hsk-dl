@@ -165,11 +165,14 @@ saveImagePng :: FilePath -> [Double] -> IO ()
 saveImagePng path pixels = do
   let w = 28
       h = 28
-      clamp x = if x < 0 then 0 else if x > 255 then 255 else x
+      clamp x
+        | x < 0 = 0
+        | x > 255 = 255
+        | otherwise = x
       toPx v = fromIntegral (clamp (round (v * 255 :: Double))) :: Pixel8
       idx x y = y * w + x
       pixelAt x y = toPx (pixels !! idx x y)
-      img = generateImage (\x y -> pixelAt x y) w h :: Image Pixel8
+      img = generateImage pixelAt w h :: Image Pixel8
   createDirectoryIfMissing True (takeDirectory path)
   savePngImage path (ImageY8 img)
 

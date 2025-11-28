@@ -13,24 +13,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up GHC & Cabal
+      - name: Set up Stack
         uses: haskell-actions/setup@v2
         with:
-          ghc-version: "9.12.2"
-          cabal-version: "3.12.1.0"
+          enable-stack: true
+          stack-version: "latest"
 
-      - name: Cache cabal
+      - name: Cache Stack
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cabal/store
-            dist-newstyle
-          key: ${{ runner.os }}-ghc-9.12.2-${{ hashFiles('**/*.cabal', 'cabal.project*') }}
+            ~/.stack
+            .stack-work
+          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml', 'stack.yaml.lock', '**/*.cabal') }}
           restore-keys: |
-            ${{ runner.os }}-ghc-9.12.2-
-
-      - name: Cabal update
-        run: cabal update
+            ${{ runner.os }}-stack-
 
       - name: Set up HLint
         uses: haskell-actions/hlint-setup@v2
@@ -47,7 +44,7 @@ jobs:
           version: "0.13.0.0"
 
       - name: Build
-        run: cabal build all --enable-tests --ghc-options="-Wall -Werror" -j
+        run: stack build --test --no-run-tests --ghc-options="-Wall -Werror"
 
       - name: Test
-        run: cabal test all --enable-tests --test-show-details=direct -j
+        run: stack test
