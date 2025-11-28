@@ -185,8 +185,8 @@ unary name f gradF t = do
   let vals = map f (tValues t)
       backward =
         ( [ BackwardOp
-              t
-              (\up -> zipWith (*) up (map gradF (tValues t)))
+             t
+             (\up -> zipWith (*) up (map gradF (tValues t)))
           | tRequiresGrad t
           ]
         )
@@ -251,25 +251,25 @@ matmul a b =
               reqGrad = tRequiresGrad a || tRequiresGrad b
               backwardA =
                 ( [ BackwardOp
-                      a
-                      ( \up ->
-                          [ sum [up !! (i * n + j) * getB k j | j <- [0 .. n - 1]]
-                          | i <- [0 .. m - 1]
-                          , k <- [0 .. k1 - 1]
-                          ]
-                      )
+                     a
+                     ( \up ->
+                         [ sum [up !! (i * n + j) * getB k j | j <- [0 .. n - 1]]
+                         | i <- [0 .. m - 1]
+                         , k <- [0 .. k1 - 1]
+                         ]
+                     )
                   | tRequiresGrad a
                   ]
                 )
               backwardB =
                 ( [ BackwardOp
-                      b
-                      ( \up ->
-                          [ sum [getA i k * up !! (i * n + j) | i <- [0 .. m - 1]]
-                          | k <- [0 .. k1 - 1]
-                          , j <- [0 .. n - 1]
-                          ]
-                      )
+                     b
+                     ( \up ->
+                         [ sum [getA i k * up !! (i * n + j) | i <- [0 .. m - 1]]
+                         | k <- [0 .. k1 - 1]
+                         , j <- [0 .. n - 1]
+                         ]
+                     )
                   | tRequiresGrad b
                   ]
                 )

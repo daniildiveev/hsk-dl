@@ -36,8 +36,8 @@ nllLoss preds targets = do
       gradFn [g] =
         concat
           [ [ if c == cls
-                then (-g / fromIntegral batch) / max eps (pick i cls)
-                else 0
+               then (-g / fromIntegral batch) / max eps (pick i cls)
+               else 0
             | c <- [0 .. classes - 1]
             ]
           | (i, cls) <- zip [0 ..] targets
