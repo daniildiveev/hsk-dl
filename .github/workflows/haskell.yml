@@ -2,6 +2,9 @@ name: torch-haskell-CI
 
 on:
   pull_request:
+  push:
+    branches:
+      - main
 
 jobs:
   build:
