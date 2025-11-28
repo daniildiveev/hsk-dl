@@ -65,3 +65,14 @@ executable demo
   hs-source-dirs: app
   main-is: DemoXor.hs
   build-depends: base, hsk-dl
+
+executable demo-mnist
+  import: common-settings
+  hs-source-dirs: app
+  main-is: DemoMnist.hs
+  build-depends:
+    base
+    , hsk-dl
+    , filepath
+    , directory
+    , JuicyPixels
